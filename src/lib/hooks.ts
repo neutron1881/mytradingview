@@ -413,9 +413,11 @@ export const useOptionExposure = (symbol: string, dte: number, selectedExpiratio
         expiration: string;
     }[]);
 
-// useMemo(() => {
-//         return rawExposureResponse?.data.map(({ dte, expiration }) => ({ dte, expiration })) || [];
-//     }, [rawExposureResponse]);
+    const [filteredExportData, setFilteredExportData] = useState<ExposureDataResponse['data']>([]);
+
+    // useMemo(() => {
+    //         return rawExposureResponse?.data.map(({ dte, expiration }) => ({ dte, expiration })) || [];
+    //     }, [rawExposureResponse]);
 
     // const [emaData, setEmaData] = useState<{ ema9d: number, ema21d: number }>();
 
@@ -432,7 +434,7 @@ export const useOptionExposure = (symbol: string, dte: number, selectedExpiratio
                 const cacheKey = dataMode == DataModeType.HISTORICAL ? `${symbol}-${dt}` : `${symbol}-${refreshToken}-${dataMode}`;
                 let exposureResponse = cacheStore[cacheKey];
                 if (!exposureResponse) {
-                    exposureResponse =  dataMode == DataModeType.HISTORICAL ? await getHistoricalOptionExposure(symbol, dt) : await getLiveExposure(symbol, dataMode);
+                    exposureResponse = dataMode == DataModeType.HISTORICAL ? await getHistoricalOptionExposure(symbol, dt) : await getLiveExposure(symbol, dataMode);
                     setCache((prev) => { prev[cacheKey] = exposureResponse; return prev; });
                     for (const d of exposureResponse.data) {  //for better performance, we are converting the strikes to number only once
                         d.strikesMap = new Map(d.strikes.map((j, ix) => [Number(j), ix]));
@@ -443,6 +445,7 @@ export const useOptionExposure = (symbol: string, dte: number, selectedExpiratio
 
                 const start = performance.now();
                 const filteredData = dte >= 0 ? exposureResponse.data.filter(j => j.dte <= dte) : exposureResponse.data.filter(j => selectedExpirations.includes(j.expiration));
+                setFilteredExportData(filteredData);
                 const expirations = filteredData.map(j => j.expiration);
 
                 const allAvailableStikesForFilteredExpirations = new Set<number>();
@@ -548,7 +551,7 @@ export const useOptionExposure = (symbol: string, dte: number, selectedExpiratio
                 setExposureData(exposureDataValue);
                 const end = performance.now();
                 console.log(`exposure-calculation took ${end - start}ms`);
-            
+
             } catch (error) {
                 setHasError(true);
             } finally {
@@ -558,7 +561,7 @@ export const useOptionExposure = (symbol: string, dte: number, selectedExpiratio
     }, [symbol, dt, dataMode, refreshToken, chartType, dte, strikeCount, selectedExpirations]);
 
     return {
-        exposureData, isLoading, hasError, expirationData
+        exposureData, isLoading, hasError, expirationData, filteredExportData
         // , emaData
 
     };
